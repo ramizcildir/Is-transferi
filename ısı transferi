@@ -1,0 +1,104 @@
+import pygame
+import numpy as np
+import random
+
+# Pygame başlat
+pygame.init()
+
+# Ekran boyutları
+WIDTH, HEIGHT = 800, 600
+GRID_SIZE = 10  # Izgara hücre boyutu
+
+# Renk tanımları
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Isı transferi parametreleri
+k = 0.1  # Isı iletim katsayısı
+h = 0.05  # Taşınım katsayısı
+sigma = 5.67e-8  # Stefan-Boltzmann sabiti
+emissivity = 0.8  # Yüzeyin yayma katsayısı
+T_ambient = 20  # Çevre sıcaklığı
+
+def heat_source(x, y, t):
+    return 50 * np.sin(0.1 * t) if (30 < x < 50 and 30 < y < 50) else 0
+
+def generate_obstacles(grid):
+    for _ in range(50):  # Rastgele engeller ekle
+        x, y = random.randint(5, len(grid[0])-5), random.randint(5, len(grid)-5)
+        grid[y, x] = -100  # Engeller için -100 sıcaklık kullan
+
+def is_obstacle(x, y):
+    return T[y, x] == -100
+
+def add_heat_source(grid):
+    for _ in range(10):  # Rastgele ısı kaynakları ekle
+        x, y = random.randint(10, len(grid[0])-10), random.randint(10, len(grid)-10)
+        grid[y, x] = 200
+
+# Izgarayı oluştur
+cols, rows = WIDTH // GRID_SIZE, HEIGHT // GRID_SIZE
+T = np.full((rows, cols), T_ambient, dtype=float)
+
+# Orta noktada sıcak noktalar oluştur
+for i in range(rows // 3, 2 * rows // 3):
+    for j in range(cols // 3, 2 * cols // 3):
+        T[i, j] = 100
+
+generate_obstacles(T)
+add_heat_source(T)
+
+def update_temperature(T, t):
+    new_T = T.copy()
+    for i in range(1, rows-1):
+        for j in range(1, cols-1):
+            if is_obstacle(j, i):
+                continue
+            d2T_dx2 = (T[i+1, j] - 2*T[i, j] + T[i-1, j])
+            d2T_dy2 = (T[i, j+1] - 2*T[i, j] + T[i, j-1])
+            conduction = k * (d2T_dx2 + d2T_dy2)
+            convection = h * (T_ambient - T[i, j])
+            radiation = emissivity * sigma * ((T[i, j] + 273.15)**4 - (T_ambient + 273.15)**4)
+            new_T[i, j] += conduction + convection - radiation + heat_source(i, j, t)
+    return new_T
+
+def draw_grid(screen):
+    for i in range(rows):
+        for j in range(cols):
+            pygame.draw.rect(screen, BLACK, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE), 1)
+
+def draw_obstacles(screen):
+    for i in range(rows):
+        for j in range(cols):
+            if is_obstacle(j, i):
+                pygame.draw.rect(screen, BLACK, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+
+# Pygame ekranı oluştur
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Gelişmiş Isı Transferi Simülasyonu")
+clock = pygame.time.Clock()
+
+t = 0
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    T = update_temperature(T, t)
+    t += 1
+    screen.fill(WHITE)
+    
+    for i in range(rows):
+        for j in range(cols):
+            if not is_obstacle(j, i):
+                color_intensity = max(0, min(255, int((T[i, j] - T_ambient) * 2)))
+                color = (255, 255 - color_intensity, 255 - color_intensity)
+                pygame.draw.rect(screen, color, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+    
+    draw_obstacles(screen)
+    draw_grid(screen)
+    pygame.display.flip()
+    clock.tick(30)
+
+pygame.quit()
