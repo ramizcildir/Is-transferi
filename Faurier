@@ -1,0 +1,110 @@
+import math
+import matplotlib.pyplot as plt
+
+class HeatConduction:
+    def __init__(self):
+        self.k = None  # Isı iletim katsayısı (W/m·K)
+        self.geometry = None  # Geometri türü
+        self.temp_inner = None
+        self.temp_outer = None
+        self.dimension1 = None
+        self.dimension2 = None
+        self.area = None
+
+    def get_user_input(self):
+        print("=== Fourier Isı İletimi Hesaplayıcı ===")
+        print("Geometri türünü seçin:")
+        print("1 - Düzlemsel Duvar")
+        print("2 - Silindirik Kabuk")
+        print("3 - Küresel Kabuk")
+
+        choice = int(input("Seçiminiz (1/2/3): "))
+        self.geometry = choice
+
+        self.k = float(input("Isı iletim katsayısı k (W/m·K): "))
+        self.temp_inner = float(input("İç sıcaklık (°C): "))
+        self.temp_outer = float(input("Dış sıcaklık (°C): "))
+
+        if choice == 1:
+            self.dimension1 = float(input("Duvar kalınlığı L (m): "))
+            self.area = float(input("Alan A (m²): "))
+        elif choice == 2:
+            self.dimension1 = float(input("İç yarıçap r1 (m): "))
+            self.dimension2 = float(input("Dış yarıçap r2 (m): "))
+            self.area = float(input("Silindirin uzunluğu L (m): "))
+        elif choice == 3:
+            self.dimension1 = float(input("İç yarıçap r1 (m): "))
+            self.dimension2 = float(input("Dış yarıçap r2 (m): "))
+        else:
+            print("Hatalı seçim!")
+            exit()
+
+    def calculate_heat_transfer(self):
+        T1 = self.temp_inner
+        T2 = self.temp_outer
+
+        if self.geometry == 1:
+            L = self.dimension1
+            A = self.area
+            q = -self.k * A * (T2 - T1) / L
+            print(f"Duvar için ısı akısı q: {q:.2f} W")
+            return q
+
+        elif self.geometry == 2:
+            r1 = self.dimension1
+            r2 = self.dimension2
+            L = self.area
+            q = (2 * math.pi * self.k * L * (T1 - T2)) / math.log(r2 / r1)
+            print(f"Silindirik kabuk için ısı akısı q: {q:.2f} W")
+            return q
+
+        elif self.geometry == 3:
+            r1 = self.dimension1
+            r2 = self.dimension2
+            q = 4 * math.pi * self.k * ((T1 - T2) * r1 * r2) / (r2 - r1)
+            print(f"Küresel kabuk için ısı akısı q: {q:.2f} W")
+            return q
+        else:
+            print("Geometri hatalı!")
+            return None
+
+    def visualize_temperature_profile(self):
+        print("\n--- Sıcaklık Profili Grafiği Oluşturuluyor ---")
+        if self.geometry == 1:
+            x = [0, self.dimension1]
+            T = [self.temp_inner, self.temp_outer]
+            plt.plot(x, T, marker='o')
+            plt.xlabel("Duvar Kalınlığı (m)")
+            plt.ylabel("Sıcaklık (°C)")
+            plt.title("Düzlemsel Duvarda Sıcaklık Profili")
+            plt.grid(True)
+            plt.show()
+
+        elif self.geometry == 2 or self.geometry == 3:
+            r1 = self.dimension1
+            r2 = self.dimension2
+            T1 = self.temp_inner
+            T2 = self.temp_outer
+            r_values = [r1 + i * (r2 - r1) / 100 for i in range(101)]
+            if self.geometry == 2:
+                T_values = [T1 + (T2 - T1) * math.log(r/r1) / math.log(r2/r1) for r in r_values]
+                title = "Silindirik Kabukta Sıcaklık Profili"
+            else:
+                T_values = [T1 + (T2 - T1) * (1/r - 1/r1) / (1/r2 - 1/r1) for r in r_values]
+                title = "Küresel Kabukta Sıcaklık Profili"
+
+            plt.plot(r_values, T_values)
+            plt.xlabel("Yarıçap (m)")
+            plt.ylabel("Sıcaklık (°C)")
+            plt.title(title)
+            plt.grid(True)
+            plt.show()
+
+def main():
+    heat_model = HeatConduction()
+    heat_model.get_user_input()
+    heat_model.calculate_heat_transfer()
+    heat_model.visualize_temperature_profile()
+
+if __name__ == "__main__":
+    main()
