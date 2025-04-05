@@ -1,0 +1,42 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Isı transferi esaslarını anlatan tablo verisi
+data = {
+    "Yöntem": ["İletim (Konduksiyon)", "Taşınım (Konveksiyon)", "Işıma (Radyasyon)"],
+    "Tanım": [
+        "Maddenin tanecikleri arasında doğrudan temasla ısı transferi.",
+        "Sıvı veya gazın hareketiyle ısı transferi.",
+        "Elektromanyetik dalgalarla vakumda bile gerçekleşen ısı transferi."
+    ],
+    "Ortam": [
+        "Katı maddeler",
+        "Sıvılar ve gazlar",
+        "Her ortam (vakum dahil)"
+    ],
+    "Hız Faktörleri": [
+        "Malzeme türü, sıcaklık farkı",
+        "Akışkan hızı, sıcaklık farkı",
+        "Yüzey sıcaklığı, yüzey rengi, yüzey alanı"
+    ]
+}
+
+# DataFrame oluştur
+df = pd.DataFrame(data)
+
+# Tabloyu yazdır
+print("Isı Transferi Yöntemleri Tablosu:\n")
+print(df.to_string(index=False))
+
+# Grafik için sayısal temsiller oluştur (örneksel olarak hız potansiyeli veriliyor)
+transfer_speeds = [3, 2, 5]  # sadece görsel karşılaştırma için
+
+# Grafik çizimi
+plt.figure(figsize=(10, 6))
+plt.bar(data["Yöntem"], transfer_speeds, color=["orange", "skyblue", "crimson"])
+plt.title("Isı Transferi Yöntemlerinin Göreceli Hız Potansiyelleri")
+plt.ylabel("Göreceli Hız (1-5)")
+plt.ylim(0, 6)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
