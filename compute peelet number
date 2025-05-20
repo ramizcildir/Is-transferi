@@ -1,0 +1,14 @@
+def peclet_number(u, L, k, rho, cp):
+    alpha = k / (rho * cp)
+    Pe = u * L / alpha
+    return Pe
+
+# Örnek veriler (örneğin su için)
+u = 2.0       # m/s
+L = 0.05      # m
+k = 0.6       # W/m·K
+rho = 1000    # kg/m³
+cp = 4186     # J/kg·K
+
+Pe = peclet_number(u, L, k, rho, cp)
+print(f"Péclet Sayısı: {Pe:.2f}")
