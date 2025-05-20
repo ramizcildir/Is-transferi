@@ -1,0 +1,12 @@
+def calculate_nusselt(Re, Pr, heating=True):
+    if Re < 2300:
+        return 3.66  # Laminer akışta sabit
+    else:
+        n = 0.4 if heating else 0.3
+        return 0.023 * (Re ** 0.8) * (Pr ** n)
+
+# Örnek değerler:
+Re = 10_000
+Pr = 7  # Örneğin su için
+Nu = calculate_nusselt(Re, Pr)
+print(f"Nusselt Sayısı: {Nu:.2f}")
