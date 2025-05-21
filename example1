@@ -1,0 +1,115 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from scipy.constants import Stefan_Boltzmann
+
+# --- Fiziksel sabitler ve akışkan özellikleri (hava) ---
+class AirProperties:
+    def __init__(self, T_film):
+        self.T_film = T_film  # Film sıcaklığı (K)
+        self.k = 0.0364       # Isı iletkenliği [W/m.K]
+        self.Pr = 0.687       # Prandtl sayısı
+        self.nu = 30.84e-6    # Kinematik viskozite [m^2/s]
+
+# --- Giriş parametreleri ---
+class FlowConditions:
+    def __init__(self):
+        self.T_inf = 573      # Akışkan sıcaklığı [K]
+        self.T_s = 300        # Plaka yüzey sıcaklığı [K]
+        self.u_inf = 10       # Serbest akış hızı [m/s]
+        self.L = 0.5          # Plaka uzunluğu [m]
+        self.width = 1.0      # Plaka genişliği (birim genişlik) [m]
+
+# --- Newton yasası: q = h * (T_inf - T_s) ---
+def calculate_q(h, T_inf, T_s):
+    return h * (T_inf - T_s)
+
+# --- Laminer veya türbülans kontrolü ---
+def is_laminar(Re):
+    return Re < 5e5
+
+# --- Lokal Nusselt sayısı (laminer) ---
+def local_nusselt_laminar(x, Re_x, Pr):
+    return 0.332 * np.sqrt(Re_x) * Pr**(1/3)
+
+# --- Ortalama Nusselt sayısı (laminer) ---
+def avg_nusselt_laminar(Re_L, Pr):
+    return 0.664 * np.sqrt(Re_L) * Pr**(1/3)
+
+# --- Lokal ısı transfer katsayısı ---
+def local_heat_transfer_coefficient(x_vals, air, flow):
+    h_x = []
+    for x in x_vals:
+        if x == 0:
+            h_x.append(0)
+            continue
+        Re_x = flow.u_inf * x / air.nu
+        if is_laminar(Re_x):
+            Nu_x = local_nusselt_laminar(x, Re_x, air.Pr)
+        else:
+            Nu_x = 0.0296 * Re_x**0.8 * air.Pr**(1/3)  # Dittus-Boelter for turbulent
+        h = Nu_x * air.k / x
+        h_x.append(h)
+    return np.array(h_x)
+
+# --- Ortalama ısı transfer katsayısı ---
+def average_heat_transfer_coefficient(air, flow):
+    Re_L = flow.u_inf * flow.L / air.nu
+    if is_laminar(Re_L):
+        Nu_avg = avg_nusselt_laminar(Re_L, air.Pr)
+    else:
+        Nu_avg = 0.037 * Re_L**(4/5) * air.Pr**(1/3)
+    return Nu_avg * air.k / flow.L
+
+# --- Soğuma oranı hesabı ---
+def compute_cooling_rate(h_avg, flow):
+    q_prime = h_avg * (flow.T_inf - flow.T_s)
+    return q_prime  # W/m
+
+# --- Ana simülasyon fonksiyonu ---
+def simulate():
+    # Girişleri başlat
+    flow = FlowConditions()
+    air = AirProperties((flow.T_inf + flow.T_s) / 2)
+
+    # x eksenini oluştur
+    x_vals = np.linspace(0.001, flow.L, 300)
+    
+    # Lokal ısı transfer katsayısı
+    h_x = local_heat_transfer_coefficient(x_vals, air, flow)
+
+    # Lokal q''(x) değerleri
+    q_double_prime = calculate_q(h_x, flow.T_inf, flow.T_s)
+
+    # Ortalama değerler
+    h_avg = average_heat_transfer_coefficient(air, flow)
+    q_prime = compute_cooling_rate(h_avg, flow)
+
+    print(f"Ortalama h: {h_avg:.2f} W/m²·K")
+    print(f"Soğuma oranı q': {q_prime:.2f} W/m")
+
+    # Grafikler
+    fig = plt.figure(figsize=(12, 8))
+    gs = gridspec.GridSpec(2, 1)
+
+    ax1 = fig.add_subplot(gs[0])
+    ax1.plot(x_vals, h_x, color='blue', label='h(x)')
+    ax1.set_ylabel("Isı Transfer Katsayısı h(x) [W/m²·K]")
+    ax1.set_title("Yüzey Boyunca Lokal Isı Transfer Katsayısı")
+    ax1.grid(True)
+    ax1.legend()
+
+    ax2 = fig.add_subplot(gs[1])
+    ax2.plot(x_vals, q_double_prime, color='red', label="q''(x)")
+    ax2.set_xlabel("x [m]")
+    ax2.set_ylabel("Lokal Isı Akı q''(x) [W/m²]")
+    ax2.set_title("Yüzey Boyunca Lokal Isı Akı")
+    ax2.grid(True)
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Programı çalıştır
+if __name__ == "__main__":
+    simulate()
