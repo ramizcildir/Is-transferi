@@ -1,0 +1,92 @@
+import pygame
+import sys
+import math
+import time
+
+# --- Fiziksel sabitler ---
+sigma = 5.67e-8  # Stefan-Boltzmann sabiti (W/m^2K^4)
+
+# Levha özellikleri
+T1 = 800  # Levha 1 sıcaklığı (K) - sabit
+eps1 = 0.2
+eps2 = 0.7
+base_T2 = 500  # Ortalama sıcaklık
+amplitude = 30  # Sıcaklık salınım genliği
+
+# Ekran ayarları
+WIDTH, HEIGHT = 900, 500
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Levha renk hesaplama fonksiyonu (sıcaklığa göre)
+def temperature_to_color(T):
+    # Basit renk geçişi: mavi -> kırmızı
+    min_T, max_T = 300, 900
+    ratio = (T - min_T) / (max_T - min_T)
+    ratio = max(0, min(ratio, 1))
+    red = int(255 * ratio)
+    blue = int(255 * (1 - ratio))
+    return (red, 0, blue)
+
+# Radyasyonla net ısı transferi fonksiyonu
+def net_heat_flux(T1, T2, eps1, eps2):
+    num = sigma * (T1**4 - T2**4)
+    denom = (1 / eps1 + 1 / eps2 - 1)
+    return num / denom  # W/m^2
+
+# Pygame başlat
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Radyasyonla Isı Transferi Simülasyonu")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("Arial", 20)
+
+start_time = time.time()
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    elapsed = time.time() - start_time
+    T2 = base_T2 + amplitude * math.sin(2 * math.pi * elapsed / 10)
+    q12 = net_heat_flux(T1, T2, eps1, eps2)
+
+    # Ekranı temizle
+    screen.fill(WHITE)
+
+    # Levhaları çiz
+    plate_width = 700
+    plate_height = 60
+    x_offset = 100
+
+    color1 = temperature_to_color(T1)
+    color2 = temperature_to_color(T2)
+
+    # Levha 1 (üst)
+    pygame.draw.rect(screen, color1, (x_offset, 100, plate_width, plate_height))
+    pygame.draw.rect(screen, BLACK, (x_offset, 100, plate_width, plate_height), 2)
+
+    # Levha 2 (alt)
+    pygame.draw.rect(screen, color2, (x_offset, 300, plate_width, plate_height))
+    pygame.draw.rect(screen, BLACK, (x_offset, 300, plate_width, plate_height), 2)
+
+    # Sıcaklık yazıları
+    screen.blit(font.render(f"T1 = {T1:.0f} K", True, BLACK), (x_offset + plate_width + 10, 120))
+    screen.blit(font.render(f"T2 = {T2:.1f} K", True, BLACK), (x_offset + plate_width + 10, 320))
+
+    # Isı transferi oku
+    arrow_x = WIDTH // 2
+    pygame.draw.line(screen, (255, 0, 0), (arrow_x, 160), (arrow_x, 300), 5)
+    pygame.draw.polygon(screen, (255, 0, 0), [(arrow_x - 10, 290), (arrow_x + 10, 290), (arrow_x, 310)])
+
+    # Isı akısı değeri
+    screen.blit(font.render(f"Net Isı Akısı: {q12:.2f} W/m²", True, BLACK), (arrow_x - 100, 350))
+
+    # Açıklama
+    screen.blit(font.render("Levha 1: Emissivite = 0.2, Sabit Sıcaklık", True, BLACK), (50, 30))
+    screen.blit(font.render("Levha 2: Emissivite = 0.7, Sıcaklık Zamanla Değişiyor", True, BLACK), (50, 60))
+
+    pygame.display.flip()
+    clock.tick(30)  # 30 FPS
