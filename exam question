@@ -1,0 +1,105 @@
+import pygame
+import math
+
+# Pygame başlat
+pygame.init()
+width, height = 800, 600
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Doğal Taşınım Simülasyonu")
+
+# Renkler
+WHITE = (255, 255, 255)
+GRAY = (200, 200, 200)
+RED = (255, 50, 50)
+BLACK = (0, 0, 0)
+
+# Font
+font = pygame.font.SysFont(None, 24)
+
+# Fiziksel parametreler
+L = 0.6  # m
+T_s = 90
+T_inf = 30
+T_f = (T_s + T_inf) / 2
+k = 0.02808
+Pr = 0.7202
+nu = 1.896e-5
+beta = 1 / (T_f + 273.15)  # 1/K
+g = 9.81
+A = 0.36  # m^2
+
+# Ra hesap
+def calculate_values(config):
+    deltaT = T_s - T_inf
+    Gr = g * beta * deltaT * L**3 / nu**2
+    Ra = Gr * Pr
+
+    if config == "dikey":
+        Nu = 0.59 * Ra**0.25
+    elif config == "yatay_up":
+        Nu = 0.54 * Ra**0.25
+    else:  # yatay_down
+        Nu = 0.27 * Ra**0.25
+
+    h = Nu * k / L
+    Q = h * A * deltaT
+    return h, Q
+
+# Çizim
+def draw_plate(pos, config):
+    screen.fill(WHITE)
+
+    # Plaka pozisyonları
+    if config == "dikey":
+        plate = pygame.Rect(width//2 - 30, height//2 - 150, 60, 300)
+    else:
+        plate = pygame.Rect(width//2 - 150, height//2 - 30, 300, 60)
+
+    pygame.draw.rect(screen, RED, plate)
+
+    # Isı akışı okları (sıcaklık farkına göre)
+    for i in range(5):
+        if config == "dikey":
+            x = plate.right + 10
+            y = plate.top + i * 60 + 20
+            pygame.draw.polygon(screen, RED, [(x, y), (x+20, y-10), (x+20, y+10)])
+        elif config == "yatay_up":
+            x = plate.left + i * 60 + 20
+            y = plate.top - 30
+            pygame.draw.polygon(screen, RED, [(x, y), (x-10, y-20), (x+10, y-20)])
+        else:  # yatay_down
+            x = plate.left + i * 60 + 20
+            y = plate.bottom + 30
+            pygame.draw.polygon(screen, RED, [(x, y), (x-10, y+20), (x+10, y+20)])
+
+    # Hesapla ve yaz
+    h, Q = calculate_values(config)
+    text1 = font.render(f"Konfigürasyon: {config}", True, BLACK)
+    text2 = font.render(f"Isı transfer katsayısı (h): {h:.2f} W/m²·C", True, BLACK)
+    text3 = font.render(f"Toplam ısı transferi (Q): {Q:.2f} W", True, BLACK)
+
+    screen.blit(text1, (20, 20))
+    screen.blit(text2, (20, 50))
+    screen.blit(text3, (20, 80))
+
+    pygame.display.flip()
+
+# Ana döngü
+running = True
+config = "dikey"
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_1:
+                config = "dikey"
+            elif event.key == pygame.K_2:
+                config = "yatay_up"
+            elif event.key == pygame.K_3:
+                config = "yatay_down"
+
+    draw_plate((width//2, height//2), config)
+    pygame.time.delay(100)
+
+pygame.quit()
