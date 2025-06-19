@@ -1,0 +1,76 @@
+
+import pygame
+import sys
+
+# Pygame başlat
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("EV Batarya Şarj/Deşarj Simülasyonu")
+font = pygame.font.SysFont("Arial", 24)
+clock = pygame.time.Clock()
+
+# Sabitler
+BATTERY_CAPACITY_KWH = 60  # kWh
+BATTERY_VOLTAGE = 400  # Volt
+CONSUMPTION_KWH_PER_100KM = 15  # kWh/100km
+CHARGING_POWER_KW = 11  # kW (AC şarj)
+DISCHARGE_C_RATE = 1  # 1C = 1 saatte boşalır
+CHARGING_C_RATE = CHARGING_POWER_KW / BATTERY_CAPACITY_KWH
+EFFICIENCY = 0.9
+
+# Değişkenler
+battery_level_kwh = BATTERY_CAPACITY_KWH / 2  # Başlangıçta %50 dolu
+mode = "idle"  # "charging", "driving"
+time_passed = 0
+
+# Fonksiyonlar
+def draw_battery(level_kwh):
+    pygame.draw.rect(screen, (50, 50, 50), (150, 200, 500, 100), 3)
+    fill_width = int((level_kwh / BATTERY_CAPACITY_KWH) * 500)
+    pygame.draw.rect(screen, (0, 200, 0), (150, 200, fill_width, 100))
+
+def calculate_range(kwh):
+    return int((kwh / CONSUMPTION_KWH_PER_100KM) * 100)
+
+def draw_text(text, pos):
+    img = font.render(text, True, (255, 255, 255))
+    screen.blit(img, pos)
+
+# Ana döngü
+while True:
+    dt = clock.tick(60) / 1000.0  # saniye cinsinden delta time
+    screen.fill((30, 30, 30))
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_c:
+                mode = "charging"
+            elif event.key == pygame.K_d:
+                mode = "driving"
+            elif event.key == pygame.K_i:
+                mode = "idle"
+
+    # Simülasyon mantığı
+    if mode == "charging":
+        battery_level_kwh += CHARGING_POWER_KW * dt * EFFICIENCY
+        if battery_level_kwh >= BATTERY_CAPACITY_KWH:
+            battery_level_kwh = BATTERY_CAPACITY_KWH
+            mode = "idle"
+    elif mode == "driving":
+        discharge_power_kw = DISCHARGE_C_RATE * BATTERY_CAPACITY_KWH
+        battery_level_kwh -= discharge_power_kw * dt
+        if battery_level_kwh <= 0:
+            battery_level_kwh = 0
+            mode = "idle"
+
+    # Çizimler
+    draw_battery(battery_level_kwh)
+    draw_text(f"Mod: {mode.upper()}", (50, 50))
+    draw_text(f"Kapasite: {battery_level_kwh:.1f} kWh / {BATTERY_CAPACITY_KWH} kWh", (50, 90))
+    draw_text(f"Menzil: {calculate_range(battery_level_kwh)} km", (50, 130))
+    draw_text("Tusa Bas: [C] Sarj, [D] Surus, [I] Bekleme", (50, 500))
+
+    pygame.display.flip()
